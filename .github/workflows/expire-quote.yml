@@ -1,0 +1,33 @@
+name: Expire quote preview
+
+on:
+  schedule:
+    - cron: "3 5 29 7 *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  expire:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Replace the quote with the expired page
+        shell: bash
+        run: |
+          expiry_epoch="$(date -u -d '2026-07-29T05:03:00Z' +%s)"
+          current_epoch="$(date -u +%s)"
+          if [ "$current_epoch" -lt "$expiry_epoch" ]; then
+            echo "The quote is still valid."
+            exit 0
+          fi
+
+          cp expired.html index.html
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m "Expire 24-hour quote preview"
+          git push
